@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scopoli · MAM04</title>
+<meta name="description" content="Scopoli MAM04, a Koetai product: a practical introduction to linked data, SPARQL and ontologies with live curry data from DBpedia and Wikidata, ending in food-allergy reasoning for clinical decision support.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E🍛%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#/"><span class="logo">🍛</span> Scopoli <span class="by">MAM04 · by <span>Koetai</span></span></a>
+    <nav>
+      <a href="#/problems" data-nav="problems">Problems</a>
+      <a href="#/tree" data-nav="tree">Tree</a>
+      <a href="#/answers" data-nav="answers">My answers</a>
+      <a href="#/about" data-nav="about">About</a>
+    </nav>
+    <span class="progress" id="progress"></span>
+  </div>
+</header>
+<main class="wrap" id="view"></main>
+<footer class="wrap foot">
+  Scopoli is part of <a href="https://koetai.github.io/" target="_blank">Koetai</a> ·
+  <a href="https://github.com/Koetai/scopoli-mam04" target="_blank">source</a>.<br>
+  Inspired by <a href="https://rosalind.info" target="_blank">Rosalind</a>. Data live from
+  <a href="https://dbpedia.org/sparql" target="_blank">DBpedia</a> and
+  <a href="https://query.wikidata.org" target="_blank">Wikidata</a>.
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sparql/sparql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="course.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
