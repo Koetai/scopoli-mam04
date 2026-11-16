@@ -9,7 +9,7 @@ Students query live curry data in DBpedia and Wikidata, meet the mess of crowd-s
 data, see why ontologies matter, and finish by reasoning about which curries can trigger
 a food allergy, the kind of inference a clinical decision support system makes.
 
-Live: <https://koetai.github.io/scopoli-mam04/>
+Not published yet: run it locally or use the Canvas build below.
 
 ## Parts
 
@@ -41,3 +41,16 @@ python3 -m http.server 8000
 ```
 
 Open <http://localhost:8000>. No build step; content lives in `course.js`, the engine in `app.js`.
+
+## Use in Canvas
+
+Build one self-contained file and upload it to the course **Files**:
+
+```bash
+python3 prepare/build_single.py   # writes dist/scopoli-mam04.html
+```
+
+It has the styles, the CodeMirror editor and all course content inlined, so it doesn't
+depend on neighbouring files (Canvas breaks relative links). It still needs internet access
+to query DBpedia and Wikidata. Link it from a module or page. Progress is kept in the
+student's browser.
