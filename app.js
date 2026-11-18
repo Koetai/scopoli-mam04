@@ -37,6 +37,8 @@ const kindOf = (p) => p.kind || "answer";
 const unsolvedPrereqs = (p) => p.prereqs.filter((id) => !isSolved(id));
 const children = (id) => PROBLEMS.filter((p) => p.prereqs.includes(id));
 const TOOL = { guide: "Reading", answer: "Answer", choice: "Quiz" };
+const quizName = (p) => TRACKS[p.track].quiz || COURSE.quiz;
+const quizTag = (p) => p.q ? (TRACKS[p.track].quizTag || "Q") + p.q : "";
 const toolLabel = (p) => kindOf(p) === "query" ? ENDPOINTS[p.endpoint].name : p.tool || TOOL[kindOf(p)];
 
 const SHORT = [
@@ -50,6 +52,8 @@ const SHORT = [
   ["http://www.w3.org/2002/07/owl#", "owl:"],
   ["http://xmlns.com/foaf/0.1/", "foaf:"],
   ["http://purl.org/dc/terms/", "dct:"],
+  ["http://www.w3.org/2004/02/skos/core#", "skos:"],
+  [CURRY_NS, "cur:"],
 ];
 function shorten(iri) {
   for (const [long, pre] of SHORT) if (iri.startsWith(long)) return pre + iri.slice(long.length);
@@ -62,6 +66,8 @@ function shorten(iri) {
 function canon(x) {
   let s = String(x).trim().replace(/^<|>$/g, "").replace(/^"(.*)"(@\w+)?$/, "$1");
   s = s.replace(/^https?:\/\/dbpedia\.org\/(resource|ontology|property)\//, "").replace(/^(dbr|dbo|dbp):/, "");
+  if (s.startsWith(CURRY_NS)) s = s.slice(CURRY_NS.length);
+  s = s.replace(/^cur:/, "");
   s = s.replace(/^https?:\/\/www\.wikidata\.org\/(entity|wiki)\//, "").replace(/^wdt?:/, "");
   s = s.toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
   if (/^[\d,. ]+$/.test(s)) s = s.replace(/[, ]/g, "");
@@ -86,6 +92,7 @@ function cite(key) {
 
 // --------------------------------------------------------------- SPARQL I/O
 async function runQuery(endpointKey, query) {
+  if (ENDPOINTS[endpointKey].local) return runLocal(query);
   const url = ENDPOINTS[endpointKey].url;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 90000);
@@ -110,6 +117,44 @@ async function runQuery(endpointKey, query) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+// The curry ontology is queried in the browser with Comunica: no server, the
+// Turtle text comes from ontology.js. Comunica does no OWL reasoning, so a
+// query sees exactly the triples in curry.ttl.
+// Queries run one at a time: two concurrent queries on the same serialized
+// source can stall Comunica.
+let comunica = null, localQueue = Promise.resolve();
+function runLocal(query) {
+  const job = localQueue.then(() => Promise.race([runLocalNow(query),
+    new Promise((_, fail) => setTimeout(() => fail(new Error("The query took too long. Simplify it and try again.")), 30000))]));
+  localQueue = job.catch(() => {});
+  return job;
+}
+async function runLocalNow(query) {
+  comunica ||= new Comunica.QueryEngine();
+  const source = { type: "serialized", value: CURRY_TTL, mediaType: "text/turtle", baseIRI: CURRY_NS };
+  let result;
+  try { result = await comunica.query(query, { sources: [source] }); }
+  catch (e) { throw new Error(cleanError(e.message)); }
+  if (result.resultType !== "bindings") throw new Error("Only SELECT queries are supported here.");
+  const { data } = await comunica.resultToString(result, "application/sparql-results+json");
+  const text = await new Promise((ok, fail) => {
+    let t = "";
+    data.on("data", (c) => (t += c)); data.on("end", () => ok(t)); data.on("error", fail);
+  });
+  const json = JSON.parse(text);
+  return { vars: json.head.vars, rows: json.results.bindings };
+}
+
+// Downloads of the ontology; built from the embedded text, so they also work
+// in the single-file Canvas build.
+function wireDownloads(root) {
+  root.querySelectorAll("[data-dl]").forEach((a) => {
+    const [text, type] = a.dataset.dl === "owl" ? [CURRY_OWL, "application/rdf+xml"] : [CURRY_TTL, "text/turtle"];
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = a.dataset.dl === "owl" ? "curry.owl" : "curry.ttl";
+  });
 }
 
 // Endpoint error bodies are long stack traces; keep the useful line.
@@ -238,18 +283,18 @@ function answersPage() {
   const rows = PROBLEMS.filter((p) => kindOf(p) !== "guide");
   view.innerHTML = `<div class="about">
     <h1>My answers</h1>
-    <p>Everything you typed, picked or queried, in course order, so you can copy it into the course quiz. ${COURSE.answersNote || ""}</p>
+    <p>Everything you typed, picked or queried, in course order, so you can copy it into the course quizzes. Q is the SPARQL quiz, P the Protégé quiz. ${COURSE.answersNote || ""}</p>
     <p><button class="btn" id="copy">Copy all as text</button> <span id="copied" class="empty"></span></p>
     <div class="table-scroll"><table class="list answers-list">
       <thead><tr><th>ID</th><th>Question</th><th>Your answer</th><th></th></tr></thead>
       <tbody>${rows.map((p) => `<tr><td class="id">${trackDot(p.track)}<a href="#/p/${p.id}">${p.id}</a></td>
-        <td>${p.q ? `<b>Q${p.q}</b> · ` : ""}${esc(p.title)}</td><td>${shown(p)}</td><td>${isSolved(p.id) ? '<span class="solved">✓</span>' : ""}</td></tr>`).join("")}</tbody>
+        <td>${p.q ? `<b>${quizTag(p)}</b> · ` : ""}${esc(p.title)}</td><td>${shown(p)}</td><td>${isSolved(p.id) ? '<span class="solved">✓</span>' : ""}</td></tr>`).join("")}</tbody>
     </table></div></div>`;
   document.getElementById("copy").addEventListener("click", async () => {
     const text = rows.map((p) => {
       const d = state.drafts[p.id];
       const body = d == null ? "" : kindOf(p) === "choice" ? [].concat(d).map((i) => p.options[i] && p.options[i].text.replace(/<[^>]+>/g, "")).join("; ") : d;
-      return `${p.q ? "Q" + p.q + " " : ""}${p.id} · ${p.title}${isSolved(p.id) ? " ✓" : ""}\n${body}\n`;
+      return `${p.q ? quizTag(p) + " " : ""}${p.id} · ${p.title}${isSolved(p.id) ? " ✓" : ""}\n${body}\n`;
     }).join("\n");
     try { await navigator.clipboard.writeText(text); document.getElementById("copied").textContent = "Copied."; }
     catch { document.getElementById("copied").textContent = "Your browser blocked the clipboard; select the table instead."; }
@@ -261,7 +306,7 @@ function about() {
     <h1>About</h1>
     ${COURSE.about}
     <h2>How checking works</h2>
-    <p>For a <b>query</b> problem, your query and a reference query run live on the same endpoint when you press <b>Submit</b>. Your answer is correct when the values in the checked columns match. Column names matter (they're listed under <i>Return</i>); extra columns and row order don't.</p>
+    <p>For a <b>query</b> problem, your query and a reference query run on the same endpoint (or, for the curry ontology, in your browser) when you press <b>Submit</b>. Your answer is correct when the values in the checked columns match. Column names matter (they're listed under <i>Return</i>); extra columns and row order don't.</p>
     <p>For an <b>answer</b> problem, the expected answer is worked out from the live data when you submit. DBpedia and Wikidata are edited every day, so your numbers may differ from a classmate's last week. Both are right for the moment they were checked.</p>
     <h2>Why "Scopoli"?</h2>
     <p><i>Koetai</i> takes its name from the four-eyed fish <i>Anableps</i>, which sees above and below the waterline at once. The Tyrolean naturalist <a href="https://www.wikidata.org/wiki/Q84181" target="_blank">Giovanni Antonio Scopoli</a> (1723–1788) established the genus <a href="https://www.wikidata.org/wiki/Q1976257" target="_blank"><i>Anableps</i></a> in 1777. Like the fish, this practical keeps two worlds in view: DBpedia and Wikidata.</p>
@@ -270,6 +315,7 @@ function about() {
     <p>Your progress and answers are stored only in this browser.</p>
     <p><button class="btn" id="reset">Reset my progress</button></p>
   </div>`;
+  wireDownloads(view);
   document.getElementById("reset").addEventListener("click", () => {
     if (confirm("Forget all solved problems and answers?")) { state = { solved: {}, drafts: {} }; save(state); updateProgress(); about(); }
   });
@@ -313,7 +359,7 @@ function problem(id) {
     <div class="crumbs"><a href="#/problems">Problems</a> › ${trackDot(p.track)}${TRACKS[p.track].name}</div>
     <div class="ptitle"><span class="pid">${p.id}</span><h1>${esc(p.title)}</h1></div>
     <div class="meta">
-      ${p.q ? `<span>Quiz: <b>Question ${p.q}</b></span>` : ""}
+      ${p.q ? `<span>${esc(quizName(p))}: <b>Question ${p.q}</b></span>` : ""}
       <span>Concept: <b>${esc(p.concept)}</b></span>
       <span>Where: <b>${esc(toolLabel(p))}</b></span>
       ${p.prereqs.length ? `<span>After: ${p.prereqs.map((q) => `<a href="#/p/${q}">${q}</a>`).join(", ")}</span>` : ""}
@@ -337,6 +383,7 @@ function problem(id) {
       <div class="editor-pane" id="pane"></div>
     </div>
     ${pageNav(p)}`;
+  wireDownloads(view);
   const pane = document.getElementById("pane");
   const verdictBox = () => document.getElementById("verdict");
   const solvedNow = (extra = "") => {
@@ -414,7 +461,7 @@ function problem(id) {
   // query: a SPARQL editor, run live; Submit compares with the reference query.
   const ep = ENDPOINTS[p.endpoint];
   pane.innerHTML = `
-    <div class="endpoint"><span>Endpoint: <b>${esc(ep.name)}</b></span><a href="#" id="open-ui" target="_blank">open in ${esc(ep.name)} ↗</a></div>
+    <div class="endpoint"><span>${ep.local ? `Engine: <b>Comunica</b>, in your browser, on <b>${esc(ep.name)}</b>` : `Endpoint: <b>${esc(ep.name)}</b>`}</span>${ep.local ? `<a data-dl="ttl">download curry.ttl</a>` : `<a href="#" id="open-ui" target="_blank">open in ${esc(ep.name)} ↗</a>`}</div>
     <textarea id="q"></textarea>
     <div class="actions">
       <button class="btn" id="run">▶ Run</button>
@@ -431,7 +478,8 @@ function problem(id) {
   });
   editor.setValue(state.drafts[p.id] ?? p.starter);
   editor.on("change", () => { state.drafts[p.id] = editor.getValue(); save(state); });
-  document.getElementById("open-ui").addEventListener("click", (e) => { e.currentTarget.href = ep.ui(editor.getValue()); });
+  if (ep.local) wireDownloads(pane);
+  else document.getElementById("open-ui").addEventListener("click", (e) => { e.currentTarget.href = ep.ui(editor.getValue()); });
   document.getElementById("run").addEventListener("click", () => run(false));
   document.getElementById("submit").addEventListener("click", () => run(true));
   document.getElementById("reset-q").addEventListener("click", () => {

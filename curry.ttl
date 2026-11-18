@@ -1,0 +1,332 @@
+# The curry ontology — a small OWL ontology for teaching, modelled on the
+# Manchester pizza ontology (Horridge et al.). Part of Scopoli · MAM04.
+# Open it in (Web)Protégé, or query it with SPARQL.
+#
+# Curries are classes (kinds of dish), not individuals: "every Massaman curry
+# has some beef" is a restriction on the class MassamanCurry. The only
+# individuals are countries.
+
+@prefix :     <https://koetai.github.io/scopoli-mam04/curry#> .
+@prefix cur:  <https://koetai.github.io/scopoli-mam04/curry#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+
+<https://koetai.github.io/scopoli-mam04/curry> a owl:Ontology ;
+    rdfs:label "The curry ontology"@en , "De curry-ontologie"@nl ;
+    rdfs:comment "A small teaching ontology of curries, their bases and ingredients, modelled on the pizza ontology."@en ;
+    owl:versionInfo "2026-11-18" ;
+    dct:license <https://creativecommons.org/licenses/by/4.0/> .
+
+# ------------------------------------------------------------------ properties
+
+:hasIngredient a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:label "has ingredient"@en , "heeft ingrediënt"@nl ;
+    rdfs:comment "Anything that goes into a dish. Transitive: an ingredient of the base is an ingredient of the curry."@en ;
+    owl:inverseOf :isIngredientOf ;
+    rdfs:domain :Food ;
+    rdfs:range :Food .
+
+:isIngredientOf a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:label "is ingredient of"@en , "is ingrediënt van"@nl .
+
+:hasBase a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:subPropertyOf :hasIngredient ;
+    rdfs:label "has base"@en , "heeft basis"@nl ;
+    rdfs:comment "The sauce a curry is built on. Functional: a curry has at most one base."@en ;
+    rdfs:domain :Curry ;
+    rdfs:range :CurryBase .
+
+:hasMainIngredient a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasIngredient ;
+    rdfs:label "has main ingredient"@en , "heeft hoofdingrediënt"@nl ;
+    rdfs:comment "What is cooked in the base: meat, fish, vegetables, nuts, dairy, spices."@en ;
+    rdfs:domain :Curry ;
+    rdfs:range :CurryIngredient .
+
+:hasCountryOfOrigin a owl:ObjectProperty ;
+    rdfs:label "has country of origin"@en , "heeft land van herkomst"@nl ;
+    rdfs:range :Country .
+
+# --------------------------------------------------------------- top classes
+
+:Food a owl:Class ;
+    rdfs:label "food"@en , "voedsel"@nl .
+
+:Curry a owl:Class ;
+    rdfs:subClassOf :Food ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :CurryBase ] ;
+    rdfs:label "curry"@en , "curry"@nl ;
+    rdfs:comment "A dish of meat, fish, vegetables or pulses cooked in a spiced sauce."@en .
+
+:CurryBase a owl:Class ;
+    rdfs:subClassOf :Food ;
+    rdfs:label "curry base"@en , "currybasis"@nl ;
+    rdfs:comment "The sauce a curry is built on."@en .
+
+:CurryIngredient a owl:Class ;
+    rdfs:subClassOf :Food ;
+    rdfs:label "curry ingredient"@en , "curry-ingrediënt"@nl .
+
+:Country a owl:Class ;
+    rdfs:label "country"@en , "land"@nl .
+
+[] a owl:AllDisjointClasses ; owl:members ( :Curry :CurryBase :CurryIngredient :Country ) .
+
+# --------------------------------------------------------------------- bases
+
+:CoconutMilkBase a owl:Class ; rdfs:subClassOf :CurryBase ;
+    rdfs:label "coconut milk base"@en , "kokosmelkbasis"@nl .
+
+:YoghurtBase a owl:Class ; rdfs:subClassOf :CurryBase ;
+    rdfs:label "yoghurt base"@en , "yoghurtbasis"@nl .
+
+:TomatoBase a owl:Class ; rdfs:subClassOf :CurryBase ;
+    rdfs:label "tomato base"@en , "tomatenbasis"@nl .
+
+:LentilBase a owl:Class ; rdfs:subClassOf :CurryBase ;
+    rdfs:label "lentil base"@en , "linzenbasis"@nl .
+
+:RouxBase a owl:Class ;
+    rdfs:subClassOf :CurryBase ,
+        [ a owl:Restriction ; owl:onProperty :hasIngredient ; owl:someValuesFrom :WheatFlourIngredient ] ;
+    rdfs:label "roux base"@en , "rouxbasis"@nl ;
+    rdfs:comment "Fat and wheat flour cooked together, sold in Japan as curry roux blocks."@en .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( :CoconutMilkBase :YoghurtBase :TomatoBase :LentilBase :RouxBase ) .
+
+# --------------------------------------------------------------- ingredients
+
+:MeatIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "meat"@en , "vlees"@nl .
+:ChickenIngredient a owl:Class ; rdfs:subClassOf :MeatIngredient ;
+    rdfs:label "chicken"@en , "kip"@nl .
+:BeefIngredient a owl:Class ; rdfs:subClassOf :MeatIngredient ;
+    rdfs:label "beef"@en , "rundvlees"@nl .
+:LambIngredient a owl:Class ; rdfs:subClassOf :MeatIngredient ;
+    rdfs:label "lamb"@en , "lamsvlees"@nl .
+:PorkIngredient a owl:Class ; rdfs:subClassOf :MeatIngredient ;
+    rdfs:label "pork"@en , "varkensvlees"@nl .
+
+:SeafoodIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "fish and seafood"@en , "vis en zeevruchten"@nl .
+:PrawnIngredient a owl:Class ; rdfs:subClassOf :SeafoodIngredient ;
+    rdfs:label "prawn"@en , "garnaal"@nl .
+:FishSauceIngredient a owl:Class ; rdfs:subClassOf :SeafoodIngredient ;
+    rdfs:label "fish sauce"@en , "vissaus"@nl ;
+    rdfs:comment "Fermented fish; used for salt in most Thai curries."@en .
+
+:VegetableIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "vegetable"@en , "groente"@nl .
+:PotatoIngredient a owl:Class ; rdfs:subClassOf :VegetableIngredient ;
+    rdfs:label "potato"@en , "aardappel"@nl .
+:AubergineIngredient a owl:Class ; rdfs:subClassOf :VegetableIngredient ;
+    rdfs:label "aubergine"@en , "aubergine"@nl ; skos:altLabel "eggplant"@en .
+:OnionIngredient a owl:Class ; rdfs:subClassOf :VegetableIngredient ;
+    rdfs:label "onion"@en , "ui"@nl .
+:BambooShootIngredient a owl:Class ; rdfs:subClassOf :VegetableIngredient ;
+    rdfs:label "bamboo shoot"@en , "bamboescheut"@nl .
+:CarrotIngredient a owl:Class ; rdfs:subClassOf :VegetableIngredient ;
+    rdfs:label "carrot"@en , "wortel"@nl .
+
+:NutIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "nut"@en , "noot"@nl .
+:PeanutIngredient a owl:Class ; rdfs:subClassOf :NutIngredient ;
+    rdfs:label "peanut"@en , "pinda"@nl ;
+    rdfs:comment "Botanically a legume, not a nut; filed under nuts here, as cooks and allergy labels do."@en .
+:CashewIngredient a owl:Class ; rdfs:subClassOf :NutIngredient ;
+    rdfs:label "cashew"@en , "cashewnoot"@nl .
+:AlmondIngredient a owl:Class ; rdfs:subClassOf :NutIngredient ;
+    rdfs:label "almond"@en , "amandel"@nl .
+
+:DairyIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "dairy"@en , "zuivel"@nl .
+:CreamIngredient a owl:Class ; rdfs:subClassOf :DairyIngredient ;
+    rdfs:label "cream"@en , "room"@nl .
+:ButterIngredient a owl:Class ; rdfs:subClassOf :DairyIngredient ;
+    rdfs:label "butter"@en , "boter"@nl .
+:GheeIngredient a owl:Class ; rdfs:subClassOf :DairyIngredient ;
+    rdfs:label "ghee"@en , "ghee"@nl ; rdfs:comment "Clarified butter."@en .
+:CheeseIngredient a owl:Class ; rdfs:subClassOf :DairyIngredient ;
+    rdfs:label "cheese"@en , "kaas"@nl .
+:PaneerIngredient a owl:Class ; rdfs:subClassOf :CheeseIngredient ;
+    rdfs:label "paneer"@en , "paneer"@nl ; rdfs:comment "Fresh Indian cheese that does not melt."@en .
+
+:SpiceIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "spice"@en , "specerij"@nl .
+:ChilliIngredient a owl:Class ; rdfs:subClassOf :SpiceIngredient ;
+    rdfs:label "chilli"@en , "chilipeper"@nl .
+:TurmericIngredient a owl:Class ; rdfs:subClassOf :SpiceIngredient ;
+    rdfs:label "turmeric"@en , "kurkuma"@nl .
+:CuminIngredient a owl:Class ; rdfs:subClassOf :SpiceIngredient ;
+    rdfs:label "cumin"@en , "komijn"@nl .
+:GaramMasalaIngredient a owl:Class ; rdfs:subClassOf :SpiceIngredient ;
+    rdfs:label "garam masala"@en , "garam masala"@nl ; rdfs:comment "A blend of ground spices."@en .
+:CurryPasteIngredient a owl:Class ; rdfs:subClassOf :SpiceIngredient ;
+    rdfs:label "curry paste"@en , "currypasta"@nl .
+:GreenCurryPasteIngredient a owl:Class ; rdfs:subClassOf :CurryPasteIngredient ;
+    rdfs:label "green curry paste"@en , "groene currypasta"@nl .
+:RedCurryPasteIngredient a owl:Class ; rdfs:subClassOf :CurryPasteIngredient ;
+    rdfs:label "red curry paste"@en , "rode currypasta"@nl .
+
+:GrainIngredient a owl:Class ; rdfs:subClassOf :CurryIngredient ;
+    rdfs:label "grain"@en , "graan"@nl .
+:WheatFlourIngredient a owl:Class ; rdfs:subClassOf :GrainIngredient ;
+    rdfs:label "wheat flour"@en , "tarwebloem"@nl ; rdfs:comment "Contains gluten."@en .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( :MeatIngredient :SeafoodIngredient :VegetableIngredient :NutIngredient
+                  :DairyIngredient :SpiceIngredient :GrainIngredient ) .
+
+# ----------------------------------------------------------------- countries
+
+:Thailand a owl:NamedIndividual , :Country ; rdfs:label "Thailand"@en , "Thailand"@nl .
+:India a owl:NamedIndividual , :Country ; rdfs:label "India"@en , "India"@nl .
+:Japan a owl:NamedIndividual , :Country ; rdfs:label "Japan"@en , "Japan"@nl .
+:UnitedKingdom a owl:NamedIndividual , :Country ; rdfs:label "United Kingdom"@en , "Verenigd Koninkrijk"@nl .
+
+[] a owl:AllDifferent ; owl:distinctMembers ( :Thailand :India :Japan :UnitedKingdom ) .
+
+# -------------------------------------------------------------- named curries
+
+:NamedCurry a owl:Class ; rdfs:subClassOf :Curry ;
+    rdfs:label "named curry"@en , "benoemde curry"@nl ;
+    rdfs:comment "A curry with a recognised recipe."@en .
+
+:GreenCurry a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :CoconutMilkBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :ChickenIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :AubergineIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :BambooShootIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :GreenCurryPasteIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :FishSauceIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :Thailand ] ;
+    rdfs:label "green curry"@en , "groene curry"@nl ;
+    skos:altLabel "kaeng khiao wan"@th-Latn .
+
+:RedCurry a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :CoconutMilkBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PorkIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :BambooShootIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :RedCurryPasteIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :FishSauceIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :Thailand ] ;
+    rdfs:label "red curry"@en , "rode curry"@nl ;
+    skos:altLabel "kaeng phet"@th-Latn .
+
+:MassamanCurry a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :CoconutMilkBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :BeefIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PotatoIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PeanutIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :OnionIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :Thailand ] ;
+    rdfs:label "Massaman curry"@en , "massaman-curry"@nl .
+
+:ChickenTikkaMasala a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :TomatoBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :ChickenIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :CreamIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :GaramMasalaIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :UnitedKingdom ] ;
+    rdfs:label "chicken tikka masala"@en , "kip tikka masala"@nl ;
+    rdfs:comment "Usually said to have been created in British curry houses."@en .
+
+:Korma a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :YoghurtBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :LambIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :CashewIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :AlmondIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :CreamIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :India ] ;
+    rdfs:label "korma"@en , "korma"@nl ;
+    skos:altLabel "qorma"@en ;
+    rdfs:comment "A mild braise in yoghurt, thickened with ground nuts."@en .
+
+:Vindaloo a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :TomatoBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PorkIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :ChilliIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PotatoIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :India ] ;
+    rdfs:label "vindaloo"@en , "vindaloo"@nl ;
+    rdfs:comment "Goan, from the Portuguese carne de vinha d'alhos; British versions add potato."@en .
+
+:DalTadka a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :LentilBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :OnionIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :GheeIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :TurmericIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :CuminIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :India ] ;
+    rdfs:label "dal tadka"@en , "dal tadka"@nl ;
+    rdfs:comment "Lentils finished with spices fried in ghee (the tadka)."@en .
+
+:PaneerButterMasala a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :TomatoBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PaneerIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :ButterIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :CashewIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :GaramMasalaIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :India ] ;
+    rdfs:label "paneer butter masala"@en , "paneer butter masala"@nl ;
+    skos:altLabel "paneer makhani"@en .
+
+:JapaneseCurry a owl:Class ;
+    rdfs:subClassOf :NamedCurry ,
+        [ a owl:Restriction ; owl:onProperty :hasBase ; owl:someValuesFrom :RouxBase ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :BeefIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :PotatoIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :CarrotIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasMainIngredient ; owl:someValuesFrom :OnionIngredient ] ,
+        [ a owl:Restriction ; owl:onProperty :hasCountryOfOrigin ; owl:hasValue :Japan ] ;
+    rdfs:label "Japanese curry"@en , "Japanse curry"@nl ;
+    skos:altLabel "karē"@en , "kare raisu"@en .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( :GreenCurry :RedCurry :MassamanCurry :ChickenTikkaMasala :Korma
+                  :Vindaloo :DalTadka :PaneerButterMasala :JapaneseCurry ) .
+
+# ----------------------------------------------------------- defined classes
+# Necessary and sufficient conditions (owl:equivalentClass): a reasoner puts
+# every curry that meets them into the class. A SPARQL engine without a
+# reasoner sees only what is written here.
+
+:MeatyCurry a owl:Class ; rdfs:subClassOf :Curry ;
+    owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Curry
+        [ a owl:Restriction ; owl:onProperty :hasIngredient ; owl:someValuesFrom :MeatIngredient ] ) ] ;
+    rdfs:label "meaty curry"@en , "curry met vlees"@nl .
+
+:DairyCurry a owl:Class ; rdfs:subClassOf :Curry ;
+    owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Curry
+        [ a owl:Restriction ; owl:onProperty :hasIngredient ; owl:someValuesFrom :DairyIngredient ] ) ] ;
+    rdfs:label "dairy curry"@en , "curry met zuivel"@nl .
+
+:NutCurry a owl:Class ; rdfs:subClassOf :Curry ;
+    owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Curry
+        [ a owl:Restriction ; owl:onProperty :hasIngredient ; owl:someValuesFrom :NutIngredient ] ) ] ;
+    rdfs:label "nut curry"@en , "curry met noten"@nl .
+
+:GlutenCurry a owl:Class ; rdfs:subClassOf :Curry ;
+    owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Curry
+        [ a owl:Restriction ; owl:onProperty :hasIngredient ; owl:someValuesFrom :GrainIngredient ] ) ] ;
+    rdfs:label "curry with gluten"@en , "curry met gluten"@nl .
+
+:VegetarianCurry a owl:Class ; rdfs:subClassOf :Curry ;
+    owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Curry
+        [ a owl:Restriction ; owl:onProperty :hasIngredient ; owl:allValuesFrom
+            [ a owl:Class ; owl:complementOf [ a owl:Class ; owl:unionOf ( :MeatIngredient :SeafoodIngredient ) ] ] ] ) ] ;
+    rdfs:label "vegetarian curry"@en , "vegetarische curry"@nl ;
+    rdfs:comment "A curry all of whose ingredients are neither meat nor seafood."@en .

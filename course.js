@@ -3,7 +3,10 @@
 // (Practical Reasoning with Health Data), as a tree of small problems.
 // Problems carry `q`, the question number in the course quiz.
 
+const CURRY_NS = "https://koetai.github.io/scopoli-mam04/curry#";
+
 const ENDPOINTS = {
+  curry: { name: "the curry ontology", local: true },
   dbpedia: {
     name: "DBpedia",
     url: "https://dbpedia.org/sparql",
@@ -18,24 +21,27 @@ const ENDPOINTS = {
 
 const COURSE = {
   checked: "15 November 2026",
+  quiz: "SPARQL quiz",
   // The course quiz is graded, so students can't reveal answers before solving.
   giveUp: false,
   hero: {
     title: "SPARQL with food data — curry edition",
-    text: "A Thai green curry, a chicken tikka masala, a Japanese karē and a Goan vindaloo are all called “curry”, yet they differ in ingredients, origin and allergens. Query them live in DBpedia and Wikidata, meet the mess of crowd-sourced data, see why ontologies matter, and finish by reasoning about which curries can trigger a food allergy — the kind of inference a clinical decision support system makes.",
+    text: "A Thai green curry, a chicken tikka masala, a Japanese karē and a Goan vindaloo are all called “curry”, yet they differ in ingredients, origin and allergens. Query them live in DBpedia and Wikidata, meet the mess of crowd-sourced data, see why ontologies matter by exploring and querying a small curry ontology, and finish by reasoning about which curries can trigger a food allergy — the kind of inference a clinical decision support system makes.",
   },
-  order: ["one", "all", "cmp", "wd", "alg"],
+  order: ["one", "all", "cmp", "onto", "wd", "alg"],
   blurbs: {
     one: "Triples, predicates, resources and literals: everything DBpedia knows about green curry.",
     all: "Find all curries with a triple pattern; prefixes, literals, language tags.",
     cmp: "Joins, labels in many languages, GROUP BY and COUNT — and why DBpedia's raw data needs an ontology.",
+    onto: "Classes, properties and individuals in a small curry ontology: explore it in WebProtégé, then query it with Comunica and do the reasoner's work by hand.",
     wd: "Wikidata's identifiers, the label service and subclass hierarchies with property paths.",
     alg: "Assignment: link curries to food allergies, count them, and reflect on using such data for clinical decisions.",
   },
   answersNote: "Counts come from live data. If yours differs from what classmates found, add one line explaining why.",
   about: `
     <p><b>Scopoli · MAM04</b> is the SPARQL practical of the master's course <i>Practical Reasoning with Health Data</i> (MAM04), rebuilt as a tree of small problems in the style of <a href="https://rosalind.info" target="_blank">Rosalind</a>. It replaces the earlier walk-through about David Bowie and causes of death, which stopped working when DBpedia changed how it types musicians.</p>
-    <p>The questions follow the course quiz: each problem shows its quiz question number. Work through the problems here, where you get immediate feedback, then copy your answers from <a href="#/answers">My answers</a> into the quiz.</p>
+    <p>The questions follow the course quizzes: each problem shows its question number in the SPARQL quiz, or in the Protégé quiz for the curry ontology part. Work through the problems here, where you get immediate feedback, then copy your answers from <a href="#/answers">My answers</a> into the quiz.</p>
+    <p>The curry ontology is modelled on the pizza ontology of the Manchester OWL tutorial. Download it as <a data-dl="owl">curry.owl</a> or <a data-dl="ttl">curry.ttl</a>. Its queries run in your browser with <a href="https://comunica.dev" target="_blank">Comunica</a>, so they need no server.</p>
     <p>For help, see pages 38–46 of <i>Semantics for Dummies</i> and the SPARQL lecture slides.</p>
     <h2>Attention</h2>
     <ul>
@@ -50,11 +56,15 @@ const TRACKS = {
   one: { name: "One curry in DBpedia", color: "var(--t-find)" },
   all: { name: "All curries", color: "var(--t-nav)" },
   cmp: { name: "Comparing curries", color: "var(--t-map)" },
+  onto: { name: "The curry ontology", color: "var(--t-ann)", quiz: "Protégé quiz", quizTag: "P" },
   wd: { name: "Wikidata", color: "var(--t-auth)" },
   alg: { name: "Allergy assignment", color: "var(--t-lic)" },
 };
 
 const REFS = {
+  horridge: { authors: "Horridge M", year: 2011, title: "A Practical Guide To Building OWL Ontologies Using Protégé 4 and CO-ODE Tools, Edition 1.3", venue: "The University of Manchester", url: "https://www.michaeldebellis.com/post/new-protege-pizza-tutorial" },
+  owl2: { authors: "Hitzler P, Krötzsch M, Parsia B, Patel-Schneider PF, Rudolph S", year: 2012, title: "OWL 2 Web Ontology Language Primer (Second Edition)", venue: "W3C Recommendation", url: "https://www.w3.org/TR/owl2-primer/" },
+  comunica: { authors: "Taelman R, Van Herwegen J, Vander Sande M, Verborgh R", year: 2018, title: "Comunica: a modular SPARQL query engine for the web", venue: "ISWC 2018, LNCS 11137:239–255", doi: "10.1007/978-3-030-00668-6_15" },
   sparql11: { authors: "Harris S, Seaborne A", year: 2013, title: "SPARQL 1.1 Query Language", venue: "W3C Recommendation", url: "https://www.w3.org/TR/sparql11-query/" },
   rdf11: { authors: "Cyganiak R, Wood D, Lanthaler M", year: 2014, title: "RDF 1.1 Concepts and Abstract Syntax", venue: "W3C Recommendation", url: "https://www.w3.org/TR/rdf11-concepts/" },
   dbpedia: { authors: "Lehmann J, Isele R, Jakob M, et al.", year: 2015, title: "DBpedia – A large-scale, multilingual knowledge base extracted from Wikipedia", venue: "Semantic Web 6(2):167–195", doi: "10.3233/SW-140134" },
@@ -81,6 +91,19 @@ const topRows = (ep, q) => async () => {
   const max = Math.max(...r.rows.map(n));
   return r.rows.filter((row) => n(row) === max).flatMap((row) => r.vars.filter((v) => v !== "n").map((v) => row[v] && row[v].value).filter(Boolean));
 };
+
+// Queries on the curry ontology (run with Comunica in the browser).
+const QO = {};
+QO.prefixes = `PREFIX cur: <${CURRY_NS}>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\n`;
+QO.restr = QO.prefixes + "SELECT ?property ?value\nWHERE {\n  cur:MassamanCurry rdfs:subClassOf ?restriction .\n  ?restriction owl:onProperty ?property ;\n               owl:someValuesFrom|owl:hasValue ?value .\n}";
+const curryLabel = (meat) => QO.prefixes + "SELECT DISTINCT ?curry ?label\nWHERE {\n  ?curry rdfs:subClassOf cur:NamedCurry ;\n         rdfs:label ?label .\n  FILTER (lang(?label) = \"en\")\n  ?curry rdfs:subClassOf [ owl:onProperty cur:hasMainIngredient ; owl:someValuesFrom/rdfs:subClassOf* cur:DairyIngredient ] .\n  "
+  + (meat ? "" : "# ") + "?curry rdfs:subClassOf [ owl:onProperty cur:hasMainIngredient ; owl:someValuesFrom/rdfs:subClassOf* cur:MeatIngredient ] .\n}\nORDER BY ?label";
+QO.dairy = curryLabel(false);
+QO.dairyMeat = curryLabel(true);
+QO.korma = QO.prefixes + "SELECT ?p ?o\nWHERE { cur:Korma ?p ?o }";
+QO.nutStated = QO.prefixes + "SELECT ?curry\nWHERE {\n  ?curry rdfs:subClassOf cur:NutCurry .\n}";
+QO.nut = QO.prefixes + "SELECT DISTINCT ?curry\nWHERE {\n  ?curry rdfs:subClassOf cur:NamedCurry ;\n         rdfs:subClassOf [ owl:onProperty cur:hasMainIngredient ; owl:someValuesFrom/rdfs:subClassOf* cur:NutIngredient ] .\n}";
+QO.gluten = QO.prefixes + "SELECT DISTINCT ?curry\nWHERE {\n  ?curry rdfs:subClassOf cur:NamedCurry ;\n         rdfs:subClassOf [ owl:onProperty cur:hasBase ; owl:someValuesFrom ?base ] .\n  ?base rdfs:subClassOf [ owl:onProperty cur:hasIngredient ; owl:someValuesFrom/rdfs:subClassOf* cur:GrainIngredient ] .\n}";
 
 // Queries used in several problems.
 const Q = {
@@ -345,7 +368,167 @@ const PROBLEMS = [
     explain: "Three rows (dbr:Thailand, \"Thailand\"@en and dbr:Central_Thailand) for one country. An analysis that groups by the raw value splits Thailand into three. Wikidata avoids this, as you'll see.",
   },
 
-  // --------------------------------------------------------- Part 4: Wikidata
+  // ------------------------------------------------ Part 4: the curry ontology
+  {
+    id: "OWLR", track: "onto", kind: "guide", prereqs: ["GRPC"], title: "Open the curry ontology",
+    concept: "Classes, properties, individuals", tool: "WebProtégé",
+    story: `<p>DBpedia's curries are messy because nobody agreed in advance what a curry is. An <b>ontology</b> makes that agreement explicit: which kinds of things exist (<b>classes</b>), how they relate (<b>properties</b>), and which particular things there are (<b>individuals</b>). It's written in OWL, the Web Ontology Language, and is itself RDF.</p>
+      <p>This part uses a small <b>curry ontology</b>, modelled on the pizza ontology from the Manchester OWL tutorial: curries have a base (coconut milk, yoghurt, tomato, lentils, roux) and main ingredients (meat, fish, vegetables, nuts, dairy, spices). Read the meaning of individuals, properties and classes in <i>OWL_Ontologies.pdf</i> on Canvas (Horridge, chapter 3).</p>`,
+    lesson: `<p>In OWL, “every Massaman curry has some peanut” is a <b>restriction</b> on the class <code>MassamanCurry</code>: it's a statement about all Massaman curries, not about one particular plate. That's why the curries here are classes, and the only individuals are countries.</p>`,
+    task: `<ol>
+      <li>Download the ontology: <a data-dl="owl">curry.owl</a> (RDF/XML, for Protégé) or <a data-dl="ttl">curry.ttl</a> (Turtle, easier to read).</li>
+      <li>Go to <a href="https://webprotege.stanford.edu/" target="_blank">WebProtégé</a> and sign in with the account given on Canvas (or create your own free account).</li>
+      <li>Create a new project: name it <code>CurryPractical&lt;your name&gt;</code>, set the language to English (<code>en</code>), and upload <code>curry.owl</code>.</li>
+      <li>Open <b>Entities → Classes</b> and unfold <code>Food</code>.</li>
+    </ol>`,
+    explain: "",
+    refs: ["horridge", "owl2"],
+  },
+  {
+    id: "SYNO", q: 1, track: "onto", kind: "choice", prereqs: ["OWLR"], title: "Three words, three synonyms",
+    concept: "Ontology vocabulary", tool: "Reading",
+    story: `<p>Ontology people, database people and logicians use different words for the same three ideas. Chapter 3 of <i>OWL_Ontologies.pdf</i> gives the synonyms.</p>`,
+    task: `<p>Which matching is right?</p>`,
+    options: [
+      { text: "Individuals = instances · Properties = relationships · Classes = concepts", correct: true, why: "An individual is an instance of a class; a property relates two things; a class is a concept, a set of individuals." },
+      { text: "Individuals = objects · Properties = subjects · Classes = entities", why: "Subject and object are positions in a triple, not kinds of ontology element." },
+      { text: "Individuals = concepts · Properties = relationships · Classes = instances", why: "Individuals and classes are swapped: <code>Thailand</code> is an instance of the concept <code>Country</code>." },
+      { text: "Individuals = entities · Properties = objects · Classes = subjects", why: "Everything in an ontology is an entity; that doesn't tell the three apart." },
+    ],
+    explain: "In the curry ontology, Country and MassamanCurry are classes (concepts), hasBase and hasMainIngredient are properties (relationships), and Thailand is an individual (an instance of Country).",
+  },
+  {
+    id: "MSMN", q: 2, track: "onto", kind: "choice", multi: true, prereqs: ["OWLR"], title: "What's in a Massaman?",
+    concept: "Existential restrictions", tool: "WebProtégé",
+    story: `<p>In WebProtégé, under <code>Curry → NamedCurry</code>, you find nine named curries. Click <code>MassamanCurry</code>. Its description lists superclasses such as <code>hasMainIngredient some BeefIngredient</code>.</p>`,
+    lesson: `<p><code>hasMainIngredient some BeefIngredient</code> is an <b>existential restriction</b>: every Massaman curry has at least one main ingredient that is beef. It doesn't say the beef is the only thing in it.</p>`,
+    task: `<p>Which are the <b>main ingredients</b> (<code>hasMainIngredient</code>) of a Massaman curry?</p>`,
+    options: [
+      { text: "beef", correct: true }, { text: "potato", correct: true }, { text: "peanut", correct: true }, { text: "onion", correct: true },
+      { text: "coconut milk", why: "That's its base (<code>hasBase some CoconutMilkBase</code>), a different property." },
+      { text: "chicken", why: "That's in green curry and tikka masala." },
+      { text: "cashew", why: "That's in korma and paneer butter masala." },
+      { text: "fish sauce", why: "That's in green and red curry." },
+    ],
+    explain: "Four restrictions on hasMainIngredient: beef, potato, peanut and onion. Coconut milk is related through hasBase, and the origin through hasCountryOfOrigin value Thailand.",
+  },
+  {
+    id: "SUBP", q: 3, track: "onto", kind: "choice", prereqs: ["MSMN"], title: "Base and main ingredient",
+    concept: "Sub-properties", tool: "WebProtégé",
+    story: `<p>Open <b>Entities → Object properties</b>. Under <code>hasIngredient</code> you find <code>hasBase</code> and <code>hasMainIngredient</code>.</p>`,
+    task: `<p>What does it mean that <code>hasBase</code> and <code>hasMainIngredient</code> are sub-properties of <code>hasIngredient</code>?</p>`,
+    options: [
+      { text: "If a curry has base X, or main ingredient X, then it also has ingredient X.", correct: true, why: "A sub-property implies its super-property: every hasBase pair is also a hasIngredient pair." },
+      { text: "Every ingredient is either a base or a main ingredient.", why: "That's the converse, and it isn't implied: something can be an ingredient without being either." },
+      { text: "Bases and main ingredients are subclasses of the class Ingredient.", why: "That mixes up properties (relationships) and classes (concepts)." },
+      { text: "A curry must have a base before it can have main ingredients.", why: "Properties have no order." },
+    ],
+    explain: "rdfs:subPropertyOf works like subClassOf for relationships. So a query or reasoner that asks for every hasIngredient of a curry also gets its base and main ingredients. hasIngredient is also transitive: an ingredient of the base is an ingredient of the curry. You'll need that in TRAN.",
+  },
+  {
+    id: "INDV", q: 4, track: "onto", kind: "choice", prereqs: ["SUBP"], title: "Cook your own Massaman",
+    concept: "Individuals and the open world", tool: "WebProtégé",
+    story: `<p>Open <b>Entities → Individuals</b>. Only countries have been defined. Time to add one: an individual for the Massaman curry <i>you</i> cook tonight.</p>`,
+    lesson: `<p>Use the circle with the little plus above the list of individuals. Give it a name such as <code>myMassaman</code>, and set its type (class) to <code>MassamanCurry</code>.</p>`,
+    task: `<p>What main ingredients does your new individual have?</p>`,
+    options: [
+      { text: "Beef, potato, peanut and onion are listed on the individual.", why: "Look again: the individual's page shows only its type. WebProtégé has no reasoner, and even a reasoner wouldn't invent particular ingredients." },
+      { text: "None are listed. The class says it has <i>some</i> beef, potato, peanut and onion, but not which ones.", correct: true, why: "The restrictions apply to your individual through its class, but no particular beef or potato is named." },
+      { text: "Only coconut milk, because that's the base.", why: "Nothing is filled in, base included." },
+      { text: "It can't have ingredients, because only countries can be individuals.", why: "Anything can be an individual; this ontology just didn't have any curry individuals yet." },
+    ],
+    explain: "Classes describe what is true of all their members; individuals carry their own facts. To say what's in tonight's curry, add property assertions to the individual, such as hasMainIngredient myBeef, where myBeef is a BeefIngredient individual.",
+  },
+  {
+    id: "TTLR", track: "onto", kind: "query", endpoint: "curry", prereqs: ["OWLR"], title: "The ontology as triples",
+    concept: "OWL in RDF",
+    story: `<p>An OWL ontology is RDF, so you can query it with SPARQL. Usually you load it into a <b>triplestore</b>: a database for RDF triples with a SPARQL endpoint, like DBpedia's. Here we skip the server. <a href="https://comunica.dev" target="_blank">Comunica</a> is a SPARQL engine written in JavaScript: it reads <a data-dl="ttl">curry.ttl</a> and answers your query right in your browser.</p>
+      <p>This is how the Massaman curry looks in Turtle (shortened):</p>${pre(`cur:MassamanCurry a owl:Class ;
+  rdfs:subClassOf cur:NamedCurry ,
+    [ a owl:Restriction ;
+      owl:onProperty cur:hasMainIngredient ;
+      owl:someValuesFrom cur:PeanutIngredient ] ,
+    [ a owl:Restriction ;
+      owl:onProperty cur:hasCountryOfOrigin ;
+      owl:hasValue cur:Thailand ] .`)}`,
+    lesson: `<p>Each restriction is a <b>blank node</b> (<code>[ … ]</code>): a resource without a name of its own. To query it, follow <code>rdfs:subClassOf</code> into the blank node, then read <code>owl:onProperty</code> and <code>owl:someValuesFrom</code> (or <code>owl:hasValue</code>). The <code>|</code> in a property path means “or”.</p>`,
+    task: `<p><b>Run the query</b>, compare the rows with what WebProtégé showed for <code>MassamanCurry</code>, then press <b>Submit answer</b>.</p>`,
+    returns: ["property", "value"], check: ["property", "value"],
+    starter: QO.restr, solution: QO.restr,
+    explain: "Six restrictions: one on hasBase, four on hasMainIngredient and one on hasCountryOfOrigin. WebProtégé draws exactly these triples as “hasMainIngredient some PeanutIngredient”.",
+    refs: ["comunica", "owl2"],
+  },
+  {
+    id: "DAIR", q: 5, track: "onto", kind: "query", endpoint: "curry", prereqs: ["TTLR"], title: "Curries with dairy",
+    concept: "Querying class hierarchies",
+    story: `<p>Someone with a cow's milk allergy asks which curries to avoid. The editor holds the saved query <b>CurryLabel</b>: it finds named curries with a main ingredient that is dairy, or a subclass of dairy (<code>rdfs:subClassOf*</code>, zero or more steps up the hierarchy).</p>`,
+    lesson: `<p><code>owl:someValuesFrom/rdfs:subClassOf* cur:DairyIngredient</code> is a property path: from the restriction, go to the ingredient class, then up the class hierarchy until you reach <code>DairyIngredient</code>. That catches <code>PaneerIngredient</code> too, which is a <code>CheeseIngredient</code>, which is a <code>DairyIngredient</code>.</p>`,
+    task: `<p><b>Run</b> CurryLabel and press <b>Submit answer</b>. For the quiz: how many curries with a dairy ingredient do you find?</p>`,
+    returns: ["curry", "label"], check: ["curry"],
+    starter: QO.dairy, solution: QO.dairy,
+    explain: "Four: chicken tikka masala and korma (cream), dal tadka (ghee) and paneer butter masala (paneer and butter). Korma's yoghurt base is not counted: in this ontology YoghurtBase is a CurryBase, not a DairyIngredient. Whether an allergy check catches it depends on that modelling choice.",
+  },
+  {
+    id: "MEAT", q: 6, track: "onto", kind: "query", endpoint: "curry", prereqs: ["DAIR"], title: "Meaty and dairy",
+    concept: "Combining patterns",
+    story: `<p>CurryLabel has one line switched off with a <code>#</code> (shown in a different colour). Remove the <code>#</code> alone, so the line becomes part of the query, and run it again.</p>`,
+    lesson: `<p>Two triple patterns on the same <code>?curry</code> must both match: the curry needs a dairy main ingredient <i>and</i> a meat main ingredient.</p>`,
+    task: `<p>Remove the <code>#</code>, run the query and press <b>Submit answer</b>. For the quiz: how many curries are both meaty and dairy?</p>`,
+    returns: ["curry", "label"], check: ["curry"],
+    starter: QO.dairy, solution: QO.dairyMeat,
+    explain: "Two: chicken tikka masala (chicken and cream) and korma (lamb and cream).",
+  },
+  {
+    id: "KORM", q: 6, track: "onto", kind: "query", endpoint: "curry", prereqs: ["TTLR"], title: "What else is there?",
+    concept: "Annotations",
+    story: `<p>CurryLabel shows only an English label. The ontology says more about each curry: just as you asked DBpedia for everything about green curry in <a href="#/p/GREN">GREN</a>, ask the curry ontology for everything about korma.</p>`,
+    lesson: `<p>Besides logical axioms, OWL classes carry <b>annotations</b> for people: <code>rdfs:label</code> (in several languages), <code>skos:altLabel</code> (other names) and <code>rdfs:comment</code> (a description). A reasoner ignores them; a clinician reading a CDSS alert depends on them.</p>`,
+    task: `<p><b>Devise</b> a query that returns every predicate <code>?p</code> and object <code>?o</code> of <code>cur:Korma</code>. In the quiz, describe what other information you find.</p>`,
+    returns: ["p", "o"], check: ["p"],
+    starter: QO.prefixes + "SELECT ?p ?o\nWHERE {\n  \n}",
+    solution: QO.korma,
+    explain: "Korma is an owl:Class with labels in English and Dutch, an alternative name (qorma), a comment, and seven rdfs:subClassOf links: NamedCurry plus six restrictions. Its restrictions show up as blank nodes; follow them as in TTLR.",
+  },
+  {
+    id: "NUTQ", track: "onto", kind: "query", endpoint: "curry", prereqs: ["DAIR"], title: "Be the reasoner",
+    concept: "Defined classes without a reasoner",
+    story: `<p>The ontology defines <code>NutCurry</code> as “a curry that has some ingredient that is a nut” (<code>owl:equivalentClass</code>). A <b>reasoner</b>, such as HermiT in desktop Protégé, reads that definition and files every matching curry under <code>NutCurry</code> for you.</p>
+      <p>Comunica is a query engine, not a reasoner: it sees only the triples that are written down. Run the starter query: no curry is stated to be a <code>NutCurry</code>.</p>`,
+    lesson: `<p>Without a reasoner, the query has to do the reasoning. Combine the restriction pattern from <a href="#/p/DAIR">DAIR</a> with <code>rdfs:subClassOf*</code> to <code>cur:NutIngredient</code>.</p>`,
+    task: `<p>Rewrite the query so it returns, as <code>?curry</code>, every named curry with a nut main ingredient.</p>`,
+    returns: ["curry"], check: ["curry"],
+    starter: QO.nutStated, solution: QO.nut,
+    hint: "Copy CurryLabel from DAIR and change DairyIngredient to NutIngredient. The label lines are optional.",
+    explain: "Three: Massaman curry (peanut), korma (cashew, almond) and paneer butter masala (cashew). A reasoner would infer the same three as NutCurry. Which engine does the reasoning — a reasoner, or you in SPARQL — is a design choice in every clinical system.",
+  },
+  {
+    id: "TRAN", track: "onto", kind: "query", endpoint: "curry", prereqs: ["NUTQ"], title: "Hidden gluten",
+    concept: "Transitive properties",
+    story: `<p>None of the named curries lists wheat as a main ingredient. But Japanese curry is made on a roux base, and the ontology says <code>RouxBase</code> has some <code>WheatFlourIngredient</code>.</p>
+      <p>Because <code>hasBase</code> is a sub-property of <code>hasIngredient</code>, and <code>hasIngredient</code> is <b>transitive</b> (<a href="#/p/SUBP">SUBP</a>), a reasoner concludes that Japanese curry has wheat flour as an ingredient, and files it under <code>GlutenCurry</code>.</p>`,
+    lesson: `<p>Do the two steps by hand: from the curry, follow the <code>hasBase</code> restriction to the base class; from the base class, follow its <code>hasIngredient</code> restriction to an ingredient that is (a subclass of) <code>cur:GrainIngredient</code>.</p>`,
+    task: `<p>Return, as <code>?curry</code>, every named curry whose base contains a grain.</p>`,
+    returns: ["curry"], check: ["curry"],
+    starter: QO.prefixes + "SELECT DISTINCT ?curry\nWHERE {\n  ?curry rdfs:subClassOf cur:NamedCurry ;\n         rdfs:subClassOf [ owl:onProperty cur:hasBase ; owl:someValuesFrom ?base ] .\n  \n}",
+    solution: QO.gluten,
+    explain: "Only Japanese curry. An allergy check that looked only at main ingredients would miss it, even though the ontology knows. Transitivity across parts (dish → base → flour) is exactly the inference a CDSS needs for coeliac disease.",
+  },
+  {
+    id: "OPEN", track: "onto", kind: "choice", prereqs: ["NUTQ"], title: "Is dal vegetarian?",
+    concept: "Open-world assumption", tool: "Reading",
+    story: `<p><code>VegetarianCurry</code> is defined as a curry whose ingredients are <i>all</i> neither meat nor seafood (<code>hasIngredient only (not (MeatIngredient or SeafoodIngredient))</code>). Dal tadka's main ingredients are onion, ghee, turmeric and cumin, on a lentil base.</p>`,
+    lesson: `<p>OWL makes the <b>open-world assumption</b>: what isn't stated is unknown, not false. A database usually makes the closed-world assumption: what isn't there isn't true.</p>`,
+    task: `<p>Would a reasoner classify <code>DalTadka</code> as a <code>VegetarianCurry</code>?</p>`,
+    options: [
+      { text: "Yes: none of its ingredients is meat or seafood.", why: "None of its <i>stated</i> ingredients is. The ontology doesn't say these are all of them." },
+      { text: "No: the ontology says what dal has, not that that's all it has. It would need a closure axiom, such as hasIngredient only (Onion or Ghee or …).", correct: true, why: "Under the open world, a dal with chicken in it isn't ruled out. The pizza tutorial calls the fix a closure axiom." },
+      { text: "No: ghee comes from an animal, so it isn't vegetarian.", why: "Ghee is dairy, which this definition allows; only meat and seafood are excluded." },
+      { text: "Yes: the reasoner assumes that unstated ingredients are absent.", why: "That's the closed-world assumption, which OWL doesn't make." },
+    ],
+    explain: "In a clinical record, “no peanut recorded” is not “contains no peanut”. Open-world reasoning won't conclude that a dish or a drug is safe from missing data, which is what you want for allergies. Keep it in mind for the allergy assignment.",
+  },
+
+  // --------------------------------------------------------- Part 5: Wikidata
   {
     id: "WDID", track: "wd", prereqs: ["THAL"], title: "Curry's identifier",
     concept: "Opaque identifiers", placeholder: "Q…",
@@ -489,7 +672,7 @@ const PROBLEMS = [
     explain: "Wikidata separates the organism (a taxon) from the food made from it. Both are correct items, but editors choose differently, so counts get split. Allergy data usually points at the food.",
   },
 
-  // ----------------------------------------------- Part 5: allergy assignment
+  // ----------------------------------------------- Part 6: allergy assignment
   {
     id: "FALG", q: 21, track: "alg", kind: "query", endpoint: "wikidata", prereqs: ["TOPI", "GARL"], title: "Food allergies and their causes",
     concept: "Medical knowledge in Wikidata",
