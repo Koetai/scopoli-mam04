@@ -9,7 +9,7 @@ Students query live curry data in DBpedia and Wikidata, meet the mess of crowd-s
 data, see why ontologies matter, and finish by reasoning about which curries can trigger
 a food allergy, the kind of inference a clinical decision support system makes.
 
-Not published yet: run it locally or use the Canvas build below.
+Live at <https://koetai.github.io/scopoli-mam04/>. For Canvas, use the single-file build below.
 
 ## Parts
 
